@@ -5,6 +5,7 @@ class VariableRegistry:
         self.scope_stack = [{}]  # Stack of scope dictionaries
         self.scope_names = ['global']  # Track scope names for debugging
         self.current_scope_id = 0
+        self.all_variables = []  # Store ALL variables ever declared (for display)
         
     def add(self, identifier, var_type, initial_val=None, context='declaration'):
         """
@@ -17,7 +18,7 @@ class VariableRegistry:
             context: Context of variable (declaration, assignment, etc.)
         """
         current_scope = self.scope_stack[-1]
-        current_scope[identifier] = {
+        var_entry = {
             'id': identifier,
             'dtype': var_type,
             'val': initial_val,
@@ -25,6 +26,10 @@ class VariableRegistry:
             'scope': self.scope_names[-1],
             'scope_level': len(self.scope_stack) - 1
         }
+        current_scope[identifier] = var_entry
+        
+        # Add to permanent record (for symbol table display)
+        self.all_variables.append(var_entry)
     
     def find(self, identifier):
         """
@@ -70,22 +75,24 @@ class VariableRegistry:
         for scope in reversed(self.scope_stack):
             if identifier in scope:
                 scope[identifier]['val'] = new_value
-                # Keep original context (declaration)
+                
+                # Also update in all_variables for display
+                for var in self.all_variables:
+                    if var['id'] == identifier and var['scope'] == scope[identifier]['scope']:
+                        var['val'] = new_value
+                        break
+                
                 return True
         return False
     
     def all_entries(self):
         """
-        Get all entries in all scopes
+        Get all entries that have been declared (including in popped scopes)
         
         Returns:
             list: All variable entries with scope information
         """
-        all_vars = []
-        for i, scope in enumerate(self.scope_stack):
-            for var_info in scope.values():
-                all_vars.append(var_info)
-        return all_vars
+        return self.all_variables
     
     def current_scope_entries(self):
         """
@@ -159,3 +166,4 @@ class VariableRegistry:
         self.scope_stack = [{}]
         self.scope_names = ['global']
         self.current_scope_id = 0
+        self.all_variables = []  # Clear the permanent record too
